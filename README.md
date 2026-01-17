@@ -2,8 +2,6 @@
 
 # CareLink Mesh System
 ## *Version 0.1 - Local Prototype*
-Edition
-### *Version 0.0.1 — Multi tier project*
 
 ![Version](https://img.shields.io/badge/Version-0.1--EN-green)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
