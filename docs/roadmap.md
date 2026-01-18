@@ -1,4 +1,3 @@
-Plaintext
 # 🗺️ CareLink Mesh System — Roadmap v0.2
 > **Evolution from local prototype to a clinical-grade resilient IoT network.**
 
