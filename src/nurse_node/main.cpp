@@ -1,86 +1,96 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <espnow.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include "oled.h"
 
-// Header condiviso del protocollo
-#include "carelink_protocol.h"
+// -------------------------------
+// PACKET STRUCTURES
+// -------------------------------
+typedef struct {
+    char bed_id[8];
+    uint8_t mac[6];
+} PairingPacket;
 
-// --- Configurazione Display (HW-364A) ---
-#define I2C_SDA 14
-#define I2C_SCL 12
-Adafruit_SSD1306 display(128, 64, &Wire, -1);
+typedef struct {
+    uint8_t status;   // 1 = OK, 0 = FAIL
+} PairingResponse;
 
-// Struttura locale per i dati in arrivo
-carelink_msg_t incomingData;
+// -------------------------------
+// FORWARD DECLARATIONS
+// -------------------------------
+void initESPNow();
+void onDataRecv(uint8_t *mac, uint8_t *data, uint8_t len);
+void sendPairingResponse(uint8_t *mac, bool ok);
 
-// --- Callback di ricezione ESP-NOW ---
-void onDataRecv(uint8_t * mac, uint8_t *incomingRaw, uint8_t len) {
-    // 1. Verifica dimensione pacchetto (v0.2 = 21 byte)
-    if (len != sizeof(carelink_msg_t)) return;
+// -------------------------------
+// SETUP
+// -------------------------------
+void setup() {
+    Serial.begin(115200);
+    oledInit();
+    oledPrint("Nurse Node v0.3");
 
-    // 2. Copia i byte nella struct locale
-    memcpy(&incomingData, incomingRaw, sizeof(incomingData));
+    WiFi.mode(WIFI_STA);
 
-    // 3. Inoltro binario verso il Gateway Python (Serial)
-    // Inviamo i byte grezzi; il gateway.py userà struct.unpack
-    Serial.write((uint8_t *)&incomingData, sizeof(incomingData));
-
-    // 4. Feedback Visivo sul Display
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setCursor(0,0);
-    display.print("Bed: "); display.println(incomingData.bed_id);
-    
-    display.setTextSize(2);
-    display.print("HR:  "); display.println(incomingData.bpm);
-    display.print("SpO2:"); display.print(incomingData.spo2); display.println("%");
-    
-    if(incomingData.alert_type > 0) {
-        display.setCursor(0, 50);
-        display.setTextSize(1);
-        display.print("!!! ALERT DETECTED !!!");
-        display.invertDisplay(true);
-    } else {
-        display.invertDisplay(false);
-    }
-    display.display();
+    initESPNow();
+    oledPrint("Ready for pairing");
 }
 
-void setup() {
-    // La velocità deve corrispondere a quella nel config.yaml del gateway
-    Serial.begin(115200);
+// -------------------------------
+// LOOP
+// -------------------------------
+void loop() {
+    // v0.3: no vitals yet
+    delay(1000);
+}
 
-    // Inizializzazione I2C e Display
-    Wire.begin(I2C_SDA, I2C_SCL);
-    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        for(;;); // Blocco se OLED non risponde
-    }
-    
-    display.clearDisplay();
-    display.setCursor(0,10);
-    display.println("CareLink Nurse Node");
-    display.println("v0.2 - Listening...");
-    display.display();
-
-    // Inizializzazione ESP-NOW
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-
+// -------------------------------
+// ESP-NOW INIT
+// -------------------------------
+void initESPNow() {
     if (esp_now_init() != 0) {
-        Serial.println("Error initializing ESP-NOW");
+        oledPrint("ESP-NOW FAIL");
         return;
     }
 
-    // Configurazione Ruolo e Callback
     esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
     esp_now_register_recv_cb(onDataRecv);
 }
 
-void loop() {
-    // Il Nurse Node è guidato dagli interrupt (callback)
-    // Qui si possono aggiungere funzioni di gestione locale (pulsanti per silenziare)
-    delay(100);
+// -------------------------------
+// RECEIVE PAIRING REQUEST
+// -------------------------------
+void onDataRecv(uint8_t *mac, uint8_t *data, uint8_t len) {
+    if (len < sizeof(PairingPacket)) return;
+
+    PairingPacket pkt;
+    memcpy(&pkt, data, sizeof(pkt));
+
+    Serial.println("Pairing request from:");
+    Serial.printf("%02X:%02X:%02X:%02X:%02X:%02X\n",
+                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+    Serial.print("Bed: ");
+    Serial.println(pkt.bed_id);
+
+    // v0.3: accept all pairings
+    bool ok = true;
+
+    sendPairingResponse(mac, ok);
+
+    if (ok) {
+        oledPrint("Paired bed ");
+        oledAppend(pkt.bed_id);
+    }
 }
+
+// -------------------------------
+// SEND PAIRING RESPONSE
+// -------------------------------
+void sendPairingResponse(uint8_t *mac, bool ok) {
+    PairingResponse resp;
+    resp.status = ok ? 1 : 0;
+
+    esp_now_send(mac, (uint8_t*)&resp, sizeof(resp));
+}
+

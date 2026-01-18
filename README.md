@@ -9,19 +9,19 @@
   ╚██████╗ ██║  ██║██║  ██║███████╗███████╗██║██║ ╚████║██║  ██╗
    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
 
+CARELINK • Connected Care Mesh  
+Patient • Nurse • Gateway • Cloud‑Ready System
 </pre>
-
-### **A resilient clinical IoT ecosystem for real‑world bedside monitoring, nurse workflows, and emergency alerts.**
 
 </div>
 
 ---
 
-# 🏥 CareLink  
+# 🏥 CareLink Mesh System  
 ### *Born in the ward. Built for the ward. A tribute to those who care.*
 
 ![Version](https://img.shields.io/badge/Version-0.3--EN-blue)
-![Platform](https://img.shields.io/badge/Platform-ESP32--Clinical-orange)
+![Platform](https://img.shields.io/badge/Platform-ESP8266--HW364A-orange)
 ![Framework](https://img.shields.io/badge/Framework-Arduino/PlatformIO-blue)
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
@@ -34,7 +34,7 @@ It exists to **support everyone**.
 CareLink is a tribute to the entire healthcare team:
 
 - nurses  
-- healthcare assistants and support staff  
+- healthcare assistant and support staff  
 - physicians and residents  
 - physiotherapists  
 - rehabilitation and respiratory therapists  
@@ -52,127 +52,69 @@ and also the path I am building for my own future, a bridge between healthcare a
 
 ---
 
-# 🌐 What CareLink Is (Beyond the Technology)
+# ✨ What’s New in v0.3 — *Configuration & Pairing Release*
 
-CareLink is a bedside ecosystem that:
+CareLink v0.3 introduces the foundation that transforms the system from a prototype into a **deployable bedside device**.
 
-- gathers vital signs directly from the patient’s bed  
-- interprets them with simple but meaningful clinical logic  
-- alerts the nurse gateway when something changes  
-- keeps working even when the network fails  
-- prepares data for cloud analysis and ward‑wide visibility  
+### 🔗 Secure Pairing  
+A new nurse‑first ESP‑NOW handshake allows each Patient Node to be paired with a specific Nurse Node.
 
-It does not decide.  
-It does not replace.  
-**It supports.**
+### ⚙️ Persistent Configuration  
+A Captive Portal now allows bedside setup of:
+- **Bed ID**  
+- **Nurse MAC Address**
 
----
+Values are stored in EEPROM and survive reboots.
 
-# 🏗️ System Architecture Overview
+### 🌐 Captive Portal Setup  
+On first boot (or after factory reset), the Patient Node exposes a Wi‑Fi AP for configuration.
 
-CareLink is built as a **modular clinical IoT ecosystem** composed of:
+### 🖥️ OLED Feedback  
+Nodes now display:
+- Setup Mode  
+- Pairing in progress  
+- Pairing successful  
 
-### **🟦 Bedside Nodes**
-- Patient‑side devices  
-- Vital sign acquisition  
-- Local clinical logic  
-- Emergency button  
-- Multi‑layer communication  
-
-### **🟩 Nurse Gateway**
-- Central coordinator  
-- Aggregates all bedside data  
-- Manages alerts and acknowledgments  
-- Ensures resilience during network instability  
-- Prepares data for cloud integration  
-
-### **🟧 Multi‑Layer Connectivity**
-CareLink uses several communication layers to avoid single points of failure:
-
-- **Wi‑Fi** — high‑bandwidth operations  
-- **ESP‑NOW** — low‑latency peer‑to‑peer communication  
-- **LoRa (planned)** — long‑range, low‑power redundancy  
-
-### **🟥 Cloud‑Ready**
-Future integration will include:
-
-- dashboards  
-- analytics  
-- remote monitoring  
-- ward‑wide visibility  
+### 🧩 Gateway Integration  
+The gateway logs pairing events and prepares for clinical telemetry in v0.4.
 
 ---
 
-# 🚀 Core Principles
+# 🧱 Architecture Overview (v0.3)
 
-### **1. Real‑World Resilience**
-CareLink is engineered to continue operating even when:
+CareLink now consists of:
 
-- Wi‑Fi is unstable  
-- the network is congested  
-- the gateway temporarily loses connectivity  
-- the environment is noisy or unpredictable  
+- **Patient Node**  
+  Configuration, EEPROM, pairing, OLED feedback.
 
-### **2. Clinical Workflow First**
-The system supports:
+- **Nurse Node**  
+  Pairing validation, bedside association, OLED feedback.
 
-- bedside monitoring  
-- nurse alert workflows  
-- emergency requests  
-- acknowledgment loops  
-- escalation logic  
+- **Gateway**  
+  Pairing event logging, future telemetry pipeline.
 
-### **3. Modular Architecture**
-Each component can evolve independently:
+Documentation:
 
-- Gateway  
-- Nodes  
-- Communication layers  
-- Cloud integration  
-- Clinical logic  
-
-### **4. Future‑Ready**
-CareLink is designed to grow into:
-
-- cloud dashboards  
-- analytics  
-- remote supervision  
-- integration with hospital systems  
+- `docs/pairing-flow.md`  
+- `docs/configuration.md`  
+- `docs/captive-portal.md`  
+- `docs/architecture.md`
 
 ---
 
-# 📚 Documentation
+# 🛠️ Roadmap
 
-Technical documentation is available in the `docs/` directory:
-
-- `architecture.md` — System architecture  
-- `gateway.md` — Gateway logic  
-- `nodes.md` — Bedside node behavior  
-- `clinical-flow.md` — Clinical workflow logic  
-- `setup.md` — Installation and configuration  
+- **v0.2 — Clinical Intelligence** *(completed)*  
+- **v0.3 — Configuration & Pairing** *(current)*  
+- **v0.4 — Clinical Telemetry** *(next)*  
+- **v0.5 — Escalation & Doctor Node*  
+- **v0.6 — Mesh Networking*  
 
 ---
 
-# 🛠 Tech Stack
+# ❤️ A Project With a Soul
 
-- **Firmware:** C++ (ESP32)  
-- **Communication:** Wi‑Fi, ESP‑NOW, LoRa (planned)  
-- **Architecture:** Modular, multi‑layer, cloud‑ready  
-- **Hardware:** ESP32‑based devices  
-
----
-
-# ⚠️ Disclaimer
-
-CareLink is an educational and experimental project.  
-It is **not** a certified medical device and must not be used for diagnosis, treatment, or real clinical decision‑making.
-
----
-
-# 🌟 Closing Note
-
-CareLink is built with a simple mission:  
-**to bring reliability, clarity, and continuity to bedside communication in real‑world clinical environments.**
-
-It is a project shaped by experience, designed with intention, and engineered for resilience.
+CareLink is not just technology.  
+It is gratitude, experience, and hope — turned into a system.  
+And it will keep growing, just as I do.
 

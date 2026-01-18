@@ -1,0 +1,37 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+.pio/libdeps/
+.pio/build/
+.pio/.cache/
+.pio/.sconsign.dblite
+
+# Arduino / ESP
+build/
+*.elf
+*.bin
+*.hex
+
+# Python (gateway)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env/
+.venv/
+venv/
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.tmp
+*.temp

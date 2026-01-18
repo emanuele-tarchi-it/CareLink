@@ -1,80 +1,59 @@
-# 🗺️ CareLink — Roadmap v0.2
-> **From bedside monitoring to a human‑centered clinical support ecosystem.**
+# CareLink Roadmap
+
+## v0.2 — Clinical Intelligence (COMPLETED)
+- MAX30102 integration
+- MAX30205 integration
+- SpO₂, HR, Temperature
+- Shock Index calculation
+- Infection Alert logic
+- Clinical OLED display
+- Serial telemetry output
 
 ---
 
-## ✅ v0.1 — Foundations (Completed)
-**Goal:** Establish the hardware baseline and core communication layer.
-
-- [x] HW‑364A validation (ESP8266 + integrated OLED)
-- [x] Identification of non‑standard I2C mapping (SDA:14, SCL:12)
-- [x] Basic ESP‑NOW handshake between Patient and Nurse nodes
-
----
-
-## 🔄 v0.2 — Clinical Intelligence & Identity (In Progress)
-**Goal:** Give CareLink a clinical purpose and a clear project identity.
-
-- [x] Sensor Integration: MAX30102 (SpO₂/BPM) + MAX30205 (Temp)
-- [x] Edge Clinical Logic: Simplified Shock Index (sSI), Infection Alert
-- [x] Visual Urgency: OLED strobe via `invertDisplay()`
-- [x] Project Identity: README rewritten with mission, vision, and clinical context
-- [ ] Robust ACK: Refinement of the 1‑byte binary acknowledgment protocol
+## v0.3 — Configuration & Pairing (CURRENT)
+- Captive Portal for initial setup
+- EEPROM persistent configuration
+- Bed ID assignment
+- Nurse MAC assignment
+- Secure pairing handshake (ESP-NOW)
+- OLED pairing feedback
+- Gateway pairing event logging
+- Documentation updates
 
 ---
 
-## 📅 v0.3 — Configuration, Identity & Clinical Roles
-**Goal:** Introduce identity, pairing, and the first layer of clinical hierarchy.  
-*(Nurse remains the primary decision-maker.)*
-
-- [ ] Captive Portal: Configure `bed_id` and Nurse MAC without reflashing
-- [ ] EEPROM Storage: Persistent configuration across power cycles
-- [ ] Dynamic Pairing: “Tap‑to‑pair” logic between Nurse and Patient nodes
-- [ ] Clinical Escalation Model:
-  - Patient Node → Nurse Node (always first)
-  - Nurse Node validates, contextualizes, and decides whether to escalate
-  - No direct alerts to physicians
+## v0.4 — Clinical Telemetry (NEXT)
+- Re-enable MAX30102 + MAX30205
+- Integrate clinical logic with pairing
+- Send vitals to Nurse Node
+- Nurse Node displays alerts
+- Gateway logs vitals + alerts
+- MQTT publishing (optional)
+- config.yaml used by gateway
 
 ---
 
-## 📡 v0.4 — Gateway & Local Dashboard
-**Goal:** Introduce persistence, supervision, and ward‑level visibility.
-
-- [ ] Gateway Node: ESP32 hub bridging ESP‑NOW → Wi‑Fi/MQTT
-- [ ] Self‑Healing Mesh: Multi‑hop forwarding for extended coverage
-- [ ] Local Dashboard: Real‑time ward overview (web UI hosted on Gateway)
-
----
-
-## 🩺 v0.5 — Doctor Node (Supervisory Station)
-**Goal:** Add a fixed clinical workstation for validated escalation only.  
-*(Never bypassing the nurse.)*
-
-- [ ] Doctor Node: Trend visualization, validated alerts, operational messages
-- [ ] Nurse → Doctor Messaging: “Therapy updated”, “Check Bed 5”, etc.
-- [ ] Specialist Requests (Scalable):
-  - Optional contact with anesthesiology, resuscitation, respiratory therapy
-  - Modular design for future departmental integration
+## v0.5 — Escalation & Doctor Node
+- Doctor Node role
+- Escalation logic (Nurse → Doctor)
+- Multi-node alert routing
+- Prioritization of critical events
+- Gateway dashboard (basic)
 
 ---
 
-## ⚡ v0.6 — LoRa Emergency Layer
-**Goal:** Ensure survival during total infrastructure failure.
-
-- [ ] LoRa Integration: Tertiary fallback for SOS/Help messages
-- [ ] Battery Optimization: Deep‑sleep for mobile Nurse Nodes
-
----
-
-## ☁️ v1.0 — Cloud & Analytics
-**Goal:** Enterprise‑grade monitoring, auditing, and predictive insights.
-
-- [ ] AWS/Azure Bridge: Secure telemetry upload
-- [ ] Advanced Analytics: Trend‑based deterioration prediction
-- [ ] Security Hardening: AES‑128 encryption for all peer‑to‑peer packets
+## v0.6 — Mesh Networking
+- LoRa mesh backbone
+- Multi-hop routing
+- Redundant paths
+- Ward-wide coverage
+- Offline-first behavior
 
 ---
 
-## ⚠️ Disclaimer
-CareLink is a technical and educational prototype inspired by real clinical workflows.  
-It is **not** a certified medical device and must not be used for life‑critical monitoring.
+## v1.0 — Production Candidate
+- OTA updates
+- Enclosure + hardware revision
+- Battery optimization
+- Clinical trial preparation
