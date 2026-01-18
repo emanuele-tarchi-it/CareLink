@@ -1,4 +1,3 @@
-Plaintext
 # 🏥 CareLink Mesh System
 ## *Version 0.2 - Clinical Intelligence & Edge Monitoring*
 
