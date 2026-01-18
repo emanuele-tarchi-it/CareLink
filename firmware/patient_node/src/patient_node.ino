@@ -2,40 +2,114 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <SparkFun_MAX3010x.h>
+#include <SparkFun_MAX30205.h>
 
-// --- Display settings ---
+extern "C" {
+  #include "algorithm.h"   // Algoritmo Maxim ufficiale
+}
+
+// --- Display ---
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-// --- MAX30102 sensor ---
-MAX30105 particleSensor;
+// --- MAX30102 ---
+#define MAX30102_ADDR 0x57
 
-// --- Bed ID (hardcoded per ora) ---
-String bed_id = "B12";
+// --- Buffer per algoritmo Maxim ---
+#define BUFFER_SIZE 100
+uint32_t irBuffer[BUFFER_SIZE];
+uint32_t redBuffer[BUFFER_SIZE];
 
-// --- Blink management ---
+// --- Risultati ---
+int32_t spo2 = 0;
+int8_t spo2Valid = 0;
+int32_t heartRate = 0;
+int8_t heartRateValid = 0;
+
+// --- Temperatura ---
+MAX30205 tempSensor;
+float temperatureC = 0.0;
+bool tempValid = false;
+
+// --- Blink ---
 unsigned long lastBlink = 0;
 bool blinkState = false;
 
-// --- Vitals ---
-int spo2 = 97;
-int bpm = 75;
-bool spo2Valid = false;
-bool bpmValid = false;
+// --- Bed ID ---
+String bed_id = "B12";
 
-// --- Timing ---
-unsigned long lastRead = 0;
-const unsigned long readInterval = 500; // ms
+// --- Funzioni I2C MAX30102 ---
+void max30102Write(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(MAX30102_ADDR);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+}
 
-// --- Funzione: mostra i parametri vitali sul display ---
-void showVitals(int spo2, int bpm, String bed_id, bool spo2Valid, bool bpmValid) {
-    bool spo2Critical = spo2Valid && (spo2 < 90);
-    bool bpmCritical = bpmValid && (bpm < 50 || bpm > 120);
-    bool critical = spo2Critical || bpmCritical;
+void max30102ReadFIFO(uint32_t *ir, uint32_t *red) {
+    Wire.beginTransmission(MAX30102_ADDR);
+    Wire.write(0x07);
+    Wire.endTransmission(false);
+    Wire.requestFrom(MAX30102_ADDR, (uint8_t)6);
 
-    // Lampeggio in caso critico
+    if (Wire.available() == 6) {
+        uint32_t un_red = 0;
+        uint32_t un_ir = 0;
+
+        un_red |= (uint32_t)Wire.read() << 16;
+        un_red |= (uint32_t)Wire.read() << 8;
+        un_red |= (uint32_t)Wire.read();
+        un_red &= 0x03FFFF;
+
+        un_ir |= (uint32_t)Wire.read() << 16;
+        un_ir |= (uint32_t)Wire.read() << 8;
+        un_ir |= (uint32_t)Wire.read();
+        un_ir &= 0x03FFFF;
+
+        *red = un_red;
+        *ir = un_ir;
+    }
+}
+
+// --- Setup MAX30102 ---
+void setupMAX30102() {
+    max30102Write(0x09, 0x40);
+    delay(100);
+
+    max30102Write(0x02, 0x00);
+    max30102Write(0x03, 0x00);
+
+    max30102Write(0x08, 0x4F);
+    max30102Write(0x09, 0x03);
+    max30102Write(0x0A, 0x27);
+
+    max30102Write(0x0C, 0x24);
+    max30102Write(0x0D, 0x24);
+}
+
+// --- Shock Index ---
+float computeShockIndex(int spo2, int bpm) {
+    if (spo2 <= 0) return 0.0;
+    return (float)bpm / (float)spo2;
+}
+
+// --- Infection Alert ---
+bool checkInfectionAlert(float temp, int spo2, int bpm, float shockIndex) {
+    if (temp > 39.0) return true;
+    if (temp > 38.0 && bpm > 100) return true;
+    if (temp > 38.0 && shockIndex > 1.0) return true;
+    if (temp > 38.0 && spo2 < 94) return true;
+    return false;
+}
+
+// --- Display ---
+void showVitals(int spo2, int bpm, float shockIndex, float tempC,
+                bool spo2Critical, bool shockCritical, bool tempCritical,
+                bool infectionAlert) {
+
+    bool critical = spo2Critical || shockCritical || tempCritical || infectionAlert;
+
     if (critical) {
         if (millis() - lastBlink > 300) {
             lastBlink = millis();
@@ -48,7 +122,6 @@ void showVitals(int spo2, int bpm, String bed_id, bool spo2Valid, bool bpmValid)
 
     display.clearDisplay();
 
-    // --- Fascia gialla (parte alta) ---
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.print("Bed: ");
@@ -61,141 +134,17 @@ void showVitals(int spo2, int bpm, String bed_id, bool spo2Valid, bool bpmValid)
         if (spo2Critical) {
             display.print("SpO2 ");
             display.print(spo2);
-            display.print("%");
-        } else if (bpmCritical) {
-            display.print("BPM ");
-            display.print(bpm);
-        }
-    } else {
-        // Nessun critico: fascia gialla solo per ID letto
-        // (già stampato sopra)
-    }
-
-    // --- Fascia blu (parte bassa) ---
-    if (!critical) {
-        display.setTextSize(2);
-        display.setCursor(0, 32);
-        display.print("O2 ");
-        if (spo2Valid) {
-            display.print(spo2);
-        } else {
-            display.print("--");
+        } else if (shockCritical) {
+            display.print("sSI ");
+            display.print(shockIndex, 2);
+        } else if (tempCritical || infectionAlert) {
+            display.print("TEMP ");
+            display.print(tempC, 1);
         }
 
-        display.setCursor(0, 52);
-        display.print("HR ");
-        if (bpmValid) {
-            display.print(bpm);
-        } else {
-            display.print("--");
-        }
-    }
-
-    display.display();
-}
-
-// --- Inizializzazione MAX30102 ---
-bool setupMAX30102() {
-    if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
-        Serial.println("MAX30102 not found.");
-        return false;
-    }
-
-    Serial.println("MAX30102 found.");
-
-    particleSensor.setup(); // configurazione base SparkFun
-    particleSensor.setPulseAmplitudeRed(0x0A);
-    particleSensor.setPulseAmplitudeIR(0x0A);
-    particleSensor.setPulseAmplitudeGreen(0); // non usato
-
-    return true;
-}
-
-// --- Lettura semplificata di SpO2 e BPM ---
-// Nota: per una lettura clinicamente affidabile servirebbe un algoritmo più complesso.
-// Qui usiamo la logica base della libreria SparkFun.
-void readVitals() {
-    long irValue = particleSensor.getIR();
-
-    if (irValue < 5000) {
-        // dito non presente / segnale debole
-        spo2Valid = false;
-        bpmValid = false;
-        return;
-    }
-
-    // Qui potresti integrare l'algoritmo di calcolo SpO2/BPM.
-    // Per ora usiamo valori fittizi o derivati da funzioni demo.
-    // Puoi sostituire questa parte con l'algoritmo reale quando pronto.
-
-    // Placeholder: simulazione leggera per testare il layout
-    static int fakeSpo2 = 97;
-    static int fakeBpm = 75;
-
-    // Piccola variazione per simulare
-    fakeSpo2 += random(-1, 2);
-    fakeBpm += random(-2, 3);
-
-    if (fakeSpo2 < 85) fakeSpo2 = 85;
-    if (fakeSpo2 > 99) fakeSpo2 = 99;
-
-    if (fakeBpm < 50) fakeBpm = 50;
-    if (fakeBpm > 130) fakeBpm = 130;
-
-    spo2 = fakeSpo2;
-    bpm = fakeBpm;
-    spo2Valid = true;
-    bpmValid = true;
-}
-
-void setup() {
-    Serial.begin(115200);
-    delay(1000);
-
-    Serial.println("=== CareLink Patient Node v0.1 ===");
-    Serial.println("HW-364A + OLED dual-color + MAX30102");
-    Serial.println();
-
-    // I2C: SDA = 14 (D5), SCL = 12 (D6)
-    Wire.begin(14, 12);
-
-    // Display
-    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        Serial.println("SSD1306 allocation failed");
-        for (;;);
-    }
-
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println("CareLink Patient Node");
-    display.println("Init MAX30102...");
-    display.display();
-
-    // MAX30102
-    if (!setupMAX30102()) {
-        display.setCursor(0, 20);
-        display.println("MAX30102 ERROR");
-        display.display();
-        while (true) {
-            delay(1000);
-        }
-    }
-
-    display.setCursor(0, 20);
-    display.println("MAX30102 OK");
-    display.display();
-    delay(1000);
-}
-
-void loop() {
-    if (millis() - lastRead > readInterval) {
-        lastRead = millis();
-        readVitals();
-    }
-
-    showVitals(spo2, bpm, bed_id, spo2Valid, bpmValid);
-
-    delay(100);
-}
+        display.setTextSize(1);
+        display.setCursor(0, 48);
+        if (infectionAlert) display.print("INFECTION ALERT");
+        else if (tempCritical) display.print("FEVER ALERT");
+        else if (shockCritical) display.print("SHOCK ALERT");
+        else if (spo2Critical) display.print("
