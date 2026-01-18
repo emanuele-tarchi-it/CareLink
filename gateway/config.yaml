@@ -1,0 +1,17 @@
+# CareLink Gateway Configuration v0.2
+
+serial:
+  port: "/dev/ttyUSB0"  #  "COM3" on Windows
+  baudrate: 115200
+  timeout: 1
+
+mqtt:
+  enabled: true
+  broker: "localhost"
+  port: 1883
+  topic_prefix: "carelink/ward_a"
+  client_id: "carelink_gateway_01"
+
+logging:
+  file_export: true
+  filename: "clinical_data_log.csv"
