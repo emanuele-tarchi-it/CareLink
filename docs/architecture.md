@@ -1,158 +1,67 @@
-# CareLink Mesh System — Architecture
+# 🏥 CareLink Mesh System — Architecture v0.2
+> **Resilient Multi-layer IoT Network for Hospital Ward Monitoring**
 
-CareLink Mesh System is designed as a resilient, multi‑layer IoT communication network for hospital wards.  
-Its architecture ensures continuous operation across different network conditions, combining Wi‑Fi, ESP‑NOW, and a future LoRa mesh layer to guarantee reliable delivery of clinical alerts.
-
----
-
-## 1. System Overview
-
-CareLink Mesh System consists of three primary components:
-
-- **Patient Nodes**  
-  Bedside devices equipped with sensors and backup power. They generate alerts when thresholds are exceeded or when manually triggered.
-
-- **Nurse Nodes**  
-  Portable devices carried by nursing staff. They receive alerts, allow alarm acknowledgment, and provide an emergency “call for help” function.
-
-- **Gateway**  
-  A central coordination point that receives alerts, logs events, synchronizes node data, and interfaces with local or cloud services.
-
-The system is designed to remain operational even during partial or complete network outages.
+CareLink is a resilient, multi-layer IoT network designed for hospital ward monitoring, integrating real-time clinical analytics with fail-safe communication protocols.
 
 ---
 
-## 2. Communication Layers
+## 1. 🏗️ System Overview
+The CareLink ecosystem operates through three primary functional nodes:
 
-CareLink Mesh System uses a tiered communication strategy:
-
-### **2.1 Wi‑Fi (Primary Channel)**
-Used for:
-- Patient Node → Gateway communication  
-- Nurse Node → Gateway communication  
-- Synchronization with PC or cloud services  
-- Firmware updates (future)
-
-### **2.2 ESP‑NOW (Fallback Channel)**
-Activated when Wi‑Fi is unavailable.  
-Provides:
-- Low‑latency peer‑to‑peer messaging  
-- Direct Patient Node → Nurse Node communication  
-- Basic multi‑hop forwarding (planned)  
-- ACK and retransmission logic
-
-### **2.3 LoRa Mesh (Future Emergency Layer)**
-Designed for extended outages or long‑range coverage.  
-Provides:
-- Multi‑hop mesh routing  
-- Low‑bandwidth critical messaging  
-- High resilience in degraded environments
+| Node Type | Hardware Platform | Primary Function |
+| :--- | :--- | :--- |
+| **Patient Nodes** | ESP8266 (HW-364A) | Continuous vitals monitoring & automated alerting |
+| **Nurse Nodes** | ESP32 / ESP8266 | Alert management & alarm acknowledgment |
+| **Gateway** | ESP32 / PC / Cloud | Event logging & system synchronization |
 
 ---
 
-## 3. Node Types
+## 2. 🔌 Hardware Specification (Patient Node)
+The implementation leverages the **HW-364A** board, featuring an integrated OLED. Technical precision regarding pin mapping is critical for sensor stability.
 
-### **3.1 Patient Node**
-Hardware: ESP8266 or ESP32  
-Power: mains + backup battery  
-Functions:
-- Sensor monitoring (vitals, motion, custom inputs)  
-- Threshold‑based alert generation  
-- Manual alert button (optional)  
-- Communication via Wi‑Fi → ESP‑NOW → LoRa (fallback order)
+### 2.1 I2C Bus Mapping
+Due to non-standard manufacturer pinouts, the I2C bus must be initialized manually on the following GPIOs:
+* **SDA**: `GPIO 14` (Physical Pin **D5**)
+* **SCL**: `GPIO 12` (Physical Pin **D6**)
 
-### **3.2 Nurse Node**
-Hardware: ESP32 or M5Stack  
-Power: rechargeable battery  
-Interface:
-- Small display (OLED/TFT)  
-- Buttons for:
-  - Alarm acknowledgment (with confirmation)
-  - Emergency assistance request (long‑press or double‑press safety logic)
-Functions:
-- Receive alerts  
-- Send ACK with operator ID and timestamp  
-- Broadcast emergency requests to nearby nodes  
+### 2.2 Shared Sensor Matrix
+Three devices coexist on the same I2C bus using unique hexadecimal addresses:
 
-### **3.3 Gateway**
-Hardware: ESP32 or PC running Python  
-Functions:
-- Collect alerts from nodes  
-- Log events locally or to cloud  
-- Synchronize configuration across nodes  
-- Provide a single point of integration for dashboards or hospital systems  
+| Device | I2C Address | Function |
+| :--- | :--- | :--- |
+| **SSD1306 OLED** | `0x3C` | Local visual feedback & status |
+| **MAX30102** | `0x57` | Pulse Oximetry & Heart Rate |
+| **MAX30205** | `0x48` | Clinical-grade body temperature |
 
 ---
 
-## 4. Message Flow
+## 3. 🧠 Clinical Intelligence Layer
+Firmware v0.2 introduces edge-processing algorithms to provide immediate clinical decision support:
 
-### **4.1 Alert Flow**
-1. Patient Node detects threshold breach  
-2. Sends alert via Wi‑Fi  
-3. If Wi‑Fi unavailable → ESP‑NOW  
-4. If ESP‑NOW unavailable → LoRa (future)  
-5. Nurse Nodes receive alert  
-6. Nurse acknowledges alert  
-7. ACK sent to Gateway and all nodes  
-8. Event logged with operator ID and timestamp  
-
-### **4.2 Assistance Request Flow**
-1. Nurse presses “Help” button (long‑press or double‑press)  
-2. Message broadcast to nearby Nurse Nodes  
-3. Gateway logs event  
-4. Optional: escalate to cloud or PC dashboard  
+* **Simplified Shock Index (sSI)**:
+    * *Formula*: $$sSI = \frac{Heart Rate}{SpO2}$$
+    * *Threshold*: A value **> 1.0** indicates potential hemodynamic instability.
+* **Infection Alert**:
+    * *Logic*: Triggered if **Body Temp > 38.0°C**.
+    * *Co-factors*: Tachycardia (**BPM > 100**) or desaturation.
 
 ---
 
-## 5. Resilience Strategy
+## 4. 📡 Communication Strategy
+CareLink ensures message delivery through a tiered fallback strategy to survive network outages:
 
-CareLink Mesh System is designed for fault tolerance:
-
-- **Network fallback:**  
-  Wi‑Fi → ESP‑NOW → LoRa  
-- **Power resilience:**  
-  Backup batteries on all nodes  
-- **Mesh routing:**  
-  Multi‑hop forwarding when gateway is out of range  
-- **ACK + retransmission:**  
-  Ensures message delivery  
-- **Local logging:**  
-  Events stored even without cloud connectivity  
+1. **Wi-Fi (Primary)**: High-speed synchronization with the Gateway.
+2. **ESP-NOW (Secondary)**: Low-latency, peer-to-peer protocol for direct Patient-to-Nurse communication when Wi-Fi fails.
+3. **LoRa Mesh (Future)**: Long-range emergency layer for hospital-wide resilience.
 
 ---
 
-## 6. Scalability
-
-The architecture supports scaling across:
-
-- individual rooms  
-- entire wards  
-- multiple hospital floors  
-- multiple buildings (with LoRa mesh)
-
-Each node has a unique ID and can be grouped by:
-- ward  
-- sector  
-- room  
-- bed  
-
-Configuration is synchronized via the Gateway.
+## 5. 🛡️ Resilience & Safety Features
+* **Visual Urgency**: The OLED display utilizes `invertDisplay()` to generate a high-contrast flash during critical alerts.
+* **Local Autonomy**: Alert processing occurs at the edge; visual alarms remain functional even if the node is network-isolated.
+* **Power Resilience**: Designed for mains power with integrated backup battery support.
 
 ---
 
-## 7. Future Cloud Integration (v1.0)
-
-Planned AWS components:
-
-- **API Gateway** – entry point for node communication  
-- **AWS Lambda** – serverless processing of alerts  
-- **DynamoDB** – event storage  
-- **SNS / EventBridge** – notifications and escalation  
-- **Web Dashboard** – monitoring and analytics  
-
----
-
-## 8. Disclaimer
-
-CareLink Mesh System is a technical and educational prototype inspired by real clinical workflows.  
-It is not a certified medical device.
+## ⚠️ Disclaimer
+*CareLink Mesh System is a technical and educational prototype inspired by clinical workflows. It is **not** a certified medical device.*
